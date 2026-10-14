@@ -10,7 +10,7 @@ from .config import ROOT, load_config
 from .market import at, next_trading_day, now_et, parse_hhmm
 from .notifier import Notifier
 from .runner import replay, run_forever, run_now, run_today
-from .scanner import format_watchlist, scan
+from .scanner import format_movers, scan_movers
 
 
 def setup_logging() -> None:
@@ -50,10 +50,9 @@ def main() -> None:
         run_now(cfg, notifier)
     elif args.command == "scan":
         day = next_trading_day(now_et().date())
-        cands = scan(cfg, day)
-        text = format_watchlist(cands, day, "PREMARKET WATCHLIST")
+        text, html = format_movers(scan_movers(cfg, day), day, f"PREMARKET REPORT {now_et():%H:%M} ET")
         if args.send:
-            notifier.send("Premarket watchlist", text, report=True)
+            notifier.send("Premarket bulls & bears", text, report=True, html=html)
         else:
             print(text)
     elif args.command == "replay":

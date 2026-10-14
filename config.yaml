@@ -2,7 +2,8 @@
 # Premarket runs 4:00-9:30 ET. The market opens at 9:30 ET (15:30 in Central Europe most of the year).
 
 schedule:
-  scan_time: "09:15"        # find gappers + mark PMH/PML, send you the watchlist
+  premarket_reports: ["08:00", "08:45"]  # bulls & bears reports (biggest gaps, PMH changes) before the scan
+  scan_time: "09:15"        # final report + the watchlist the bot monitors after the open
   monitor_until: "12:00"    # watch for breakouts/retests until this time (max 16:00)
   poll_seconds: 60          # how often to pull fresh 1-minute candles
 
@@ -13,7 +14,7 @@ scanner:
   min_avg_volume: 500000    # 3-month average daily volume
   min_gap_percent: 4        # % up from yesterday's close in premarket
   min_premarket_active_minutes: 150   # minutes with trades since 4:00 ET (filters out illiquid names)
-  max_stocks: 10            # how many gappers to put on the watchlist
+  max_stocks: 10            # how many bulls (gap up) and bears (gap down) to list
   watchlist_file: watchlist.txt
   always_include_watchlist: true   # also track your own tickers even if they aren't gapping
 

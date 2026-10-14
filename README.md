@@ -10,7 +10,8 @@ Automates this strategy:
 
 | ET    | Your clock (CET/CEST)* | What happens |
 |-------|------------------------|--------------|
-| 09:15 | 15:15 | Scans ~1000 liquid US stocks for premarket gappers, marks **PMH / PML**, and sends you the watchlist |
+| 08:00, 08:45 | 14:00, 14:45 | **Bulls & bears report**: biggest gaps up (bulls) and down (bears) with PMH / PML, flagging **new premarket highs/lows** since the last report |
+| 09:15 | 15:15 | Final report. The bulls (plus your watchlist) become the stocks it monitors after the open |
 | 09:30 | 15:30 | Re-checks the final PMH / PML at the open and sends them again |
 | 09:31 to 12:00 | 15:31 to 18:00 | Checks every 1‑minute candle and alerts you on: |
 | | | **Broke PMH**: heads-up, says whether it's a PMH or VWAP retest plan |
@@ -39,8 +40,8 @@ summary by email and the live BUY/SELL alerts as phone pushes, which arrive fast
 
 ## Runs in the cloud every trading day (GitHub Actions)
 
-`.github/workflows/pmh-bot.yml` starts the bot at 8:45 ET every weekday on GitHub's servers, so your laptop can be
-off. It waits for the 9:15 scan, monitors until 12:00 and exits. Holidays are skipped automatically.
+`.github/workflows/pmh-bot.yml` starts the bot at 7:45 ET every weekday on GitHub's servers, so your laptop can be
+off. It sends the 8:00 / 8:45 / 9:15 reports, monitors until 12:00 and exits. Holidays are skipped automatically.
 
 Notification settings come from the repo's **Settings → Secrets and variables → Actions**:
 

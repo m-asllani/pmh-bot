@@ -3,9 +3,9 @@ name: PMH bot
 on:
   schedule:
     # GitHub cron is UTC only. Both fire every weekday; the first step keeps the one that is
-    # 8:45 New York time (12:45 UTC in summer/EDT, 13:45 UTC in winter/EST).
+    # 7:45 New York time (11:45 UTC in summer/EDT, 12:45 UTC in winter/EST).
+    - cron: "45 11 * * 1-5"
     - cron: "45 12 * * 1-5"
-    - cron: "45 13 * * 1-5"
   workflow_dispatch:
     inputs:
       command:
@@ -32,8 +32,8 @@ jobs:
         run: |
           zone=$(TZ=America/New_York date +%Z)
           run=true
-          if [ "$SCHEDULE" = "45 12 * * 1-5" ] && [ "$zone" != "EDT" ]; then run=false; fi
-          if [ "$SCHEDULE" = "45 13 * * 1-5" ] && [ "$zone" != "EST" ]; then run=false; fi
+          if [ "$SCHEDULE" = "45 11 * * 1-5" ] && [ "$zone" != "EDT" ]; then run=false; fi
+          if [ "$SCHEDULE" = "45 12 * * 1-5" ] && [ "$zone" != "EST" ]; then run=false; fi
           echo "New York is on $zone -> run=$run"
           echo "run=$run" >> "$GITHUB_OUTPUT"
 

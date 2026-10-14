@@ -14,7 +14,8 @@ from .config import ROOT
 from .market import (OPEN, PREMARKET_START, at, close_time, next_trading_day, now_et, parse_hhmm,
                      sleep_until)
 from .notifier import Notifier
-from .scanner import Candidate, format_watchlist, premarket_stats, scan
+from .scanner import (Candidate, Levels, format_movers, format_watchlist, movers_levels, premarket_stats,
+                      scan_movers)
 from .strategy import Signal, Tracker, fmt_price
 
 log = logging.getLogger(__name__)
@@ -142,22 +143,42 @@ def monitor(cfg: dict, day: dt.date, symbols: list[str], end_at: dt.datetime, no
     notifier.send("Session summary", summarize(all_signals, day), report=True)
 
 
+def premarket_reports(cfg: dict, day: dt.date, notifier: Notifier, until: dt.datetime) -> Levels | None:
+    """Bulls & bears reports at each configured time before the scan. Returns the last levels sent."""
+    previous = None
+    for t in sorted(parse_hhmm(x) for x in cfg["schedule"]["premarket_reports"]):
+        when = at(day, t)
+        if when >= until or now_et() > when + dt.timedelta(minutes=10):
+            continue
+        sleep_until(when)
+        with keep_awake():
+            movers = scan_movers(cfg, day)
+        text, html = format_movers(movers, day, f"PREMARKET REPORT {t:%H:%M} ET", previous)
+        notifier.send(f"Premarket bulls & bears {t:%H:%M} ET", text, report=True, html=html)
+        previous = movers_levels(movers)
+    return previous
+
+
 def run_session(cfg: dict, day: dt.date, notifier: Notifier, wait_for_scan: bool = True) -> None:
     scan_at = at(day, parse_hhmm(cfg["schedule"]["scan_time"]))
     open_at = at(day, OPEN)
     end_at = session_end(cfg, day)
 
+    previous = None
     if wait_for_scan:
         log.info("Next session %s. Scan at %s ET (%s your time).", day, scan_at.strftime("%H:%M"),
                  scan_at.astimezone().strftime("%H:%M"))
+        previous = premarket_reports(cfg, day, notifier, until=scan_at)
         sleep_until(scan_at)
     if now_et() >= end_at:
         log.info("Session for %s already over.", day)
         return
 
     with keep_awake():
-        cands = scan(cfg, day)
-        notifier.send("Premarket watchlist", format_watchlist(cands, day, "PREMARKET WATCHLIST"), report=True)
+        movers = scan_movers(cfg, day)
+        text, html = format_movers(movers, day, "FINAL PREMARKET REPORT", previous)
+        notifier.send("Premarket bulls & bears + watchlist", text, report=True, html=html)
+        cands = movers.bulls + movers.extras
         if not cands:
             return
         if now_et() < open_at:
@@ -218,11 +239,15 @@ def replay(cfg: dict, day: dt.date, notifier: Notifier, symbols: list[str] | Non
                 pc = prev.get(sym)
                 cands.append(Candidate(sym, s["last"], pc, (s["last"] / pc - 1) * 100 if pc else None,
                                        s["pm_high"], s["pm_low"], s["active_minutes"], True))
+    out = (lambda title, body, html="": notifier.send(title, body, report=True, html=html)) if send else (
+        lambda title, body, html="": print(f"\n=== {title} ===\n{body}\n"))
+    if symbols:
+        out("Premarket watchlist (replay)", format_watchlist(cands, day, f"WATCHLIST AS OF {scan_at:%H:%M} ET"))
     else:
-        cands = scan(cfg, day, as_of=scan_at)
-    out = (lambda title, body: notifier.send(title, body, report=True)) if send else (
-        lambda title, body: print(f"\n=== {title} ===\n{body}\n"))
-    out("Premarket watchlist (replay)", format_watchlist(cands, day, f"WATCHLIST AS OF {scan_at:%H:%M} ET"))
+        movers = scan_movers(cfg, day, as_of=scan_at)
+        cands = movers.bulls + movers.extras
+        out("Premarket bulls & bears (replay)",
+            *format_movers(movers, day, f"PREMARKET REPORT AS OF {scan_at:%H:%M} ET"))
     if not cands:
         return
 

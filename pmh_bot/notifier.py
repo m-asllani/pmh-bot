@@ -16,7 +16,7 @@ class Notifier:
     def __init__(self, cfg: dict):
         self.cfg = cfg["notifications"]
 
-    def send(self, title: str, body: str, urgent: bool = False, report: bool = False) -> None:
+    def send(self, title: str, body: str, urgent: bool = False, report: bool = False, html: str = "") -> None:
         """`report` marks the daily watchlist / levels / summary (vs. live trade alerts)."""
         n = self.cfg
         if n["console"]:
@@ -34,15 +34,17 @@ class Notifier:
         if n["discord_webhook"]:
             self._post(n["discord_webhook"], json={"content": f"**{title}**\n{body}"[:2000]})
         if n["email_to"] and n["smtp_user"] and n["smtp_password"] and (report or not n["email_reports_only"]):
-            self._email(title, body)
+            self._email(title, body, html)
 
-    def _email(self, title: str, body: str) -> None:
+    def _email(self, title: str, body: str, html: str = "") -> None:
         n = self.cfg
         msg = EmailMessage()
         msg["Subject"] = f"[PMH bot] {title}"
         msg["From"] = n["email_from"] or n["smtp_user"]
         msg["To"] = n["email_to"]
         msg.set_content(body)
+        if html:
+            msg.add_alternative(html, subtype="html")
         try:
             with smtplib.SMTP(n["smtp_host"], int(n["smtp_port"]), timeout=20) as smtp:
                 smtp.starttls()

@@ -100,8 +100,29 @@ def previous_closes(symbols: list[str], day: dt.date) -> dict[str, float]:
     return out
 
 
+_universe_cache: dict[dt.date, list[str]] = {}
+
+
 def liquid_universe(cfg: dict) -> list[str]:
-    """US-listed stocks in the configured price range with real average volume, most active first."""
+    """US-listed stocks in the configured price range with real average volume, most active first.
+
+    Fetched once per day (it barely changes) and retried, since Yahoo rate-limits the screener.
+    """
+    today = dt.date.today()
+    if today in _universe_cache:
+        return _universe_cache[today]
+    for attempt, wait in enumerate((0, 30, 90), 1):
+        time.sleep(wait)
+        symbols = _screen_universe(cfg)
+        if symbols:
+            _universe_cache[today] = symbols
+            return symbols
+        log.warning("Universe screener returned nothing (attempt %d of 3).", attempt)
+    log.warning("Scanning the watchlist only.")
+    return []
+
+
+def _screen_universe(cfg: dict) -> list[str]:
     sc = cfg["scanner"]
     query = yf.EquityQuery("and", [
         yf.EquityQuery("is-in", ["exchange", "NMS", "NYQ", "NGM", "NCM", "ASE"]),
@@ -117,5 +138,6 @@ def liquid_universe(cfg: dict) -> list[str]:
             if len(quotes) < 250:
                 break
     except Exception as exc:
-        log.warning("Universe screener failed (%s); scanning the watchlist only.", exc)
+        log.warning("Universe screener failed: %s", exc)
+        return []
     return symbols[: int(sc["universe_size"])]

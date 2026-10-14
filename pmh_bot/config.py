@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 DEFAULTS = {
     "schedule": {
+        "premarket_reports": ["08:00", "08:45"],
         "scan_time": "09:15",
         "monitor_until": "12:00",
         "poll_seconds": 60,
