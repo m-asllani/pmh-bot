@@ -1,0 +1,4 @@
+#!/bin/bash
+# Shortcut: ./bot run | now | scan | replay | test-notify
+cd "$(dirname "$0")"
+exec .venv/bin/python -m pmh_bot "$@"

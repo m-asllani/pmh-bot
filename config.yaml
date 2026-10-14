@@ -1,0 +1,49 @@
+# PMH bot settings. All times are US Eastern (New York); the bot converts to your clock.
+# Premarket runs 4:00-9:30 ET. The market opens at 9:30 ET (15:30 in Central Europe most of the year).
+
+schedule:
+  scan_time: "09:15"        # find gappers + mark PMH/PML, send you the watchlist
+  monitor_until: "12:00"    # watch for breakouts/retests until this time (max 16:00)
+  poll_seconds: 60          # how often to pull fresh 1-minute candles
+
+scanner:
+  universe_size: 1000       # how many of the most active US stocks to scan
+  min_price: 1
+  max_price: 100
+  min_avg_volume: 500000    # 3-month average daily volume
+  min_gap_percent: 4        # % up from yesterday's close in premarket
+  min_premarket_active_minutes: 150   # minutes with trades since 4:00 ET (filters out illiquid names)
+  max_stocks: 10            # how many gappers to put on the watchlist
+  watchlist_file: watchlist.txt
+  always_include_watchlist: true   # also track your own tickers even if they aren't gapping
+
+strategy:
+  vwap_includes_premarket: false   # Yahoo's free feed has no premarket volume, so VWAP starts at 9:30
+  touch_tolerance_percent: 0.3     # how close a candle low must get to the level to count as a retest
+  require_green_candle: true       # retest candle must close green, back above the level
+  lose_pmh_percent: 1.0            # close this far back under PMH cancels the setup
+  stop_buffer_percent: 0.5         # stop goes this far under the level / retest low
+  min_reward_percent: 1.0          # skip entries with less than this much room to the high of day
+  max_entries_per_stock: 2
+
+notifications:
+  console: true
+  desktop: true             # macOS notification banners
+  # Phone alerts, easiest option: install the free "ntfy" app and subscribe to this topic.
+  ntfy_topic: ""            # keep the real topic in config.local.yaml or the PMH_NTFY_TOPIC secret
+  ntfy_server: "https://ntfy.sh"
+  # Or Telegram: create a bot with @BotFather, then put its token and your chat id here.
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+  discord_webhook: ""
+  # Email. Gmail: turn on 2-step verification, create an App Password (myaccount.google.com/apppasswords)
+  # and put it in config.local.yaml or the PMH_SMTP_PASSWORD secret. Never in this file.
+  email_to: ""
+  email_from: ""            # defaults to smtp_user
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  smtp_user: ""
+  smtp_password: ""
+  email_reports_only: false # true = only the watchlist, levels and summary by email; live alerts via push
+  send_breakouts: true      # alert when a stock first breaks PMH (heads-up before the retest)
+  send_failed: false        # alert when a breakout falls back under PMH

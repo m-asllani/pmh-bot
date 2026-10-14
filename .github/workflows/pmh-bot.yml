@@ -1,0 +1,80 @@
+name: PMH bot
+
+on:
+  schedule:
+    # GitHub cron is UTC only. Both fire every weekday; the first step keeps the one that is
+    # 8:45 New York time (12:45 UTC in summer/EDT, 13:45 UTC in winter/EST).
+    - cron: "45 12 * * 1-5"
+    - cron: "45 13 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Bot command, e.g. today, now, test-notify, replay --date 2026-10-13"
+        default: "today"
+
+permissions:
+  contents: read
+  actions: write  # lets the job keep its own schedule alive (see the last step)
+
+concurrency:
+  group: pmh-bot
+  cancel-in-progress: false
+
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Pick the run for the current US daylight-saving time
+        id: gate
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          zone=$(TZ=America/New_York date +%Z)
+          run=true
+          if [ "$SCHEDULE" = "45 12 * * 1-5" ] && [ "$zone" != "EDT" ]; then run=false; fi
+          if [ "$SCHEDULE" = "45 13 * * 1-5" ] && [ "$zone" != "EST" ]; then run=false; fi
+          echo "New York is on $zone -> run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Run bot
+        if: steps.gate.outputs.run == 'true'
+        env:
+          COMMAND: ${{ github.event.inputs.command || 'today' }}
+          PMH_NTFY_TOPIC: ${{ secrets.PMH_NTFY_TOPIC }}
+          PMH_EMAIL_TO: ${{ secrets.PMH_EMAIL_TO }}
+          PMH_SMTP_USER: ${{ secrets.PMH_SMTP_USER }}
+          PMH_SMTP_PASSWORD: ${{ secrets.PMH_SMTP_PASSWORD }}
+          PMH_TELEGRAM_BOT_TOKEN: ${{ secrets.PMH_TELEGRAM_BOT_TOKEN }}
+          PMH_TELEGRAM_CHAT_ID: ${{ secrets.PMH_TELEGRAM_CHAT_ID }}
+          PMH_DISCORD_WEBHOOK: ${{ secrets.PMH_DISCORD_WEBHOOK }}
+        run: python -m pmh_bot $COMMAND
+
+      - name: Save logs
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 90
+
+      - name: Keep the schedule alive
+        # GitHub disables scheduled workflows in repos with no activity for 60 days.
+        # Re-enabling the workflow resets that timer.
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/pmh-bot.yml/enable"

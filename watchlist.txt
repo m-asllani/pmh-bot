@@ -1,0 +1,2 @@
+# Tickers you always want tracked, one per line (optional).
+# The scanner also finds premarket gappers automatically.
