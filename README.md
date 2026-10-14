@@ -33,7 +33,11 @@ Weekends and US market holidays are skipped.
 **Phone alerts:** install the free **ntfy** app (iOS/Android), tap **+**, and subscribe to the topic in
 `config.yaml` → `notifications.ntfy_topic`. Telegram and Discord are also supported (see `config.yaml`).
 
-**Email:** works with any SMTP account. With Gmail, turn on 2-step verification and create an
+**Email (easiest):** sign up free at [resend.com](https://resend.com) with the address you want alerts at,
+create an API key, and set `resend_api_key` + `email_to` (in `config.local.yaml` or as GitHub secrets
+`PMH_RESEND_API_KEY` / `PMH_EMAIL_TO`). Without your own domain, Resend only delivers to your sign-up address.
+
+**Email via SMTP:** works with any SMTP account. With Gmail, turn on 2-step verification and create an
 [App Password](https://myaccount.google.com/apppasswords). Put `email_to`, `smtp_user` and `smtp_password` in
 `config.local.yaml` (private, never committed). Set `email_reports_only: true` to get only the watchlist and
 summary by email and the live BUY/SELL alerts as phone pushes, which arrive faster.

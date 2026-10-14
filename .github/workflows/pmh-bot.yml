@@ -56,6 +56,7 @@ jobs:
           COMMAND: ${{ github.event.inputs.command || 'today' }}
           PMH_NTFY_TOPIC: ${{ secrets.PMH_NTFY_TOPIC }}
           PMH_EMAIL_TO: ${{ secrets.PMH_EMAIL_TO }}
+          PMH_RESEND_API_KEY: ${{ secrets.PMH_RESEND_API_KEY }}
           PMH_SMTP_USER: ${{ secrets.PMH_SMTP_USER }}
           PMH_SMTP_PASSWORD: ${{ secrets.PMH_SMTP_PASSWORD }}
           PMH_TELEGRAM_BOT_TOKEN: ${{ secrets.PMH_TELEGRAM_BOT_TOKEN }}

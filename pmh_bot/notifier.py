@@ -33,8 +33,22 @@ class Notifier:
                        json={"chat_id": n["telegram_chat_id"], "text": f"{title}\n\n{body}"})
         if n["discord_webhook"]:
             self._post(n["discord_webhook"], json={"content": f"**{title}**\n{body}"[:2000]})
-        if n["email_to"] and n["smtp_user"] and n["smtp_password"] and (report or not n["email_reports_only"]):
-            self._email(title, body, html)
+        if n["email_to"] and (report or not n["email_reports_only"]):
+            if n["resend_api_key"]:
+                self._resend(title, body, html)
+            elif n["smtp_user"] and n["smtp_password"]:
+                self._email(title, body, html)
+
+    def _resend(self, title: str, body: str, html: str = "") -> None:
+        """Email through resend.com: just an API key, no mail server or app password."""
+        n = self.cfg
+        payload = {"from": n["email_from"] or "PMH Bot <onboarding@resend.dev>",
+                   "to": [a.strip() for a in n["email_to"].split(",") if a.strip()],
+                   "subject": f"[PMH bot] {title}", "text": body}
+        if html:
+            payload["html"] = html
+        self._post("https://api.resend.com/emails", json=payload,
+                   headers={"Authorization": f"Bearer {n['resend_api_key']}"})
 
     def _email(self, title: str, body: str, html: str = "") -> None:
         n = self.cfg

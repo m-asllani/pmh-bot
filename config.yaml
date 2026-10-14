@@ -37,9 +37,11 @@ notifications:
   telegram_bot_token: ""
   telegram_chat_id: ""
   discord_webhook: ""
-  # Email. Gmail: turn on 2-step verification, create an App Password (myaccount.google.com/apppasswords)
-  # and put it in config.local.yaml or the PMH_SMTP_PASSWORD secret. Never in this file.
-  email_to: ""
+  # Email, easiest: sign up at resend.com with the address you want alerts at, create an API key, and put it
+  # in config.local.yaml or the PMH_RESEND_API_KEY secret (never in this file).
+  # Or Gmail SMTP: 2-step verification + App Password (myaccount.google.com/apppasswords) in smtp_password.
+  email_to: ""              # comma-separated for several addresses
+  resend_api_key: ""
   email_from: ""            # defaults to smtp_user
   smtp_host: "smtp.gmail.com"
   smtp_port: 587

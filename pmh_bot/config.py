@@ -45,6 +45,7 @@ DEFAULTS = {
         "telegram_chat_id": "",
         "discord_webhook": "",
         "email_to": "",
+        "resend_api_key": "",
         "email_from": "",
         "smtp_host": "smtp.gmail.com",
         "smtp_port": 587,
@@ -74,6 +75,7 @@ SECRET_ENV = {
     "PMH_TELEGRAM_CHAT_ID": "telegram_chat_id",
     "PMH_DISCORD_WEBHOOK": "discord_webhook",
     "PMH_EMAIL_TO": "email_to",
+    "PMH_RESEND_API_KEY": "resend_api_key",
     "PMH_SMTP_USER": "smtp_user",
     "PMH_SMTP_PASSWORD": "smtp_password",
 }
