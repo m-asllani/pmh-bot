@@ -44,8 +44,10 @@ summary by email and the live BUY/SELL alerts as phone pushes, which arrive fast
 
 ## Runs in the cloud every trading day (GitHub Actions)
 
-`.github/workflows/pmh-bot.yml` starts the bot at 7:45 ET every weekday on GitHub's servers, so your laptop can be
-off. It sends the 8:00 / 8:45 / 9:15 reports, monitors until 12:00 and exits. Holidays are skipped automatically.
+`.github/workflows/pmh-bot.yml` runs the bot on GitHub's servers every weekday, so your laptop can be off.
+GitHub often starts scheduled jobs **hours late**, so the workflow has several overnight triggers. The first one to
+start waits, then hands off to a fresh job (manual starts aren't delayed). That job is in place by ~6:20 ET, sends the
+8:00 / 8:45 / 9:15 reports, monitors until 12:00 and exits. Later triggers see the work is done and exit. Holidays are skipped automatically.
 
 Notification settings come from the repo's **Settings → Secrets and variables → Actions**:
 
@@ -56,7 +58,7 @@ gh secret set PMH_SMTP_USER
 gh secret set PMH_SMTP_PASSWORD
 ```
 
-Run it by hand from the **Actions** tab ("Run workflow"). For example, `test-notify`, or `replay --date 2026-10-13`
+Run it by hand from the **Actions** tab ("Run workflow"). For example, `test-notify`, `now` (start a session immediately), or `replay --date 2026-10-13`
 to check the data from GitHub's servers. Each run's logs are saved as an artifact for 90 days.
 
 ## Running it locally
