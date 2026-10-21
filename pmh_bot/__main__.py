@@ -4,12 +4,14 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import logging
+import os
+import subprocess
 import sys
 
 from .config import ROOT, load_config
 from .market import at, next_trading_day, now_et, parse_hhmm
 from .notifier import Notifier
-from .runner import replay, run_forever, run_now, run_today
+from .runner import replay, run_cloud, run_forever, run_now, run_today
 from .scanner import format_movers, scan_movers
 
 
@@ -22,12 +24,22 @@ def setup_logging() -> None:
     )
 
 
+def start_next_job() -> None:
+    """Start a fresh run of this workflow. Manual starts aren't delayed like GitHub's schedule."""
+    workflow = os.environ.get("PMH_WORKFLOW", "pmh-bot.yml")
+    subprocess.run(["gh", "workflow", "run", workflow, "--repo", os.environ["GITHUB_REPOSITORY"],
+                    "-f", "command=cloud"], check=True)
+    logging.info("Started the next job.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="pmh_bot", description="Premarket high / VWAP retest alert bot")
     parser.add_argument("--config", help="path to config.yaml")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run", help="run every trading day automatically (leave this running)")
     sub.add_parser("today", help="wait for today's scan time, run the session, then exit (for schedulers)")
+    p_cloud = sub.add_parser("cloud", help="GitHub Actions entry point: run the next session, relaying across jobs")
+    p_cloud.add_argument("--relay-now", action="store_true", help="test: hand off to a fresh job immediately")
     sub.add_parser("now", help="scan right now and monitor today's session")
     p_scan = sub.add_parser("scan", help="scan premarket gappers once and print them")
     p_scan.add_argument("--send", action="store_true", help="also send the list to your notifications")
@@ -44,6 +56,11 @@ def main() -> None:
 
     if args.command == "run":
         run_forever(cfg, notifier)
+    elif args.command == "cloud":
+        if args.relay_now:
+            start_next_job()
+        else:
+            run_cloud(cfg, notifier, relay=start_next_job)
     elif args.command == "today":
         run_today(cfg, notifier)
     elif args.command == "now":

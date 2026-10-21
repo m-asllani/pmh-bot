@@ -206,6 +206,34 @@ def run_forever(cfg: dict, notifier: Notifier) -> None:
         sleep_until(max(now_et(), session_end(cfg, day)) + dt.timedelta(seconds=5))
 
 
+# GitHub Actions kills a job after 6 hours, and its scheduled triggers can start hours late.
+MAX_RUN = dt.timedelta(hours=5, minutes=40)
+HORIZON = dt.timedelta(hours=14)
+
+
+def run_cloud(cfg: dict, notifier: Notifier, relay) -> None:
+    """Run the next session if it fits in one job; otherwise wait, then `relay()` to start a fresh job.
+
+    Several overnight triggers call this. Whichever arrives first starts the relay. Later ones find the
+    session already done (or too far away) and exit.
+    """
+    now = now_et()
+    day = next_trading_day(now.date())
+    if now >= session_end(cfg, day):
+        day = next_trading_day(day + dt.timedelta(days=1))
+    end = session_end(cfg, day)
+    if end - now > HORIZON:
+        log.info("Next session (%s) is more than %s away; a later trigger will handle it.", day, HORIZON)
+        return
+    if end - now > MAX_RUN:
+        wake = min(end - MAX_RUN, now + MAX_RUN - dt.timedelta(minutes=10))
+        log.info("Session %s won't fit in one job. Handing off to a fresh job at %s ET.", day, wake.strftime("%H:%M"))
+        sleep_until(wake)
+        relay()
+        return
+    run_session(cfg, day, notifier)
+
+
 def run_today(cfg: dict, notifier: Notifier) -> None:
     """One session for today, then exit (for schedulers like GitHub Actions or cron)."""
     today = now_et().date()
